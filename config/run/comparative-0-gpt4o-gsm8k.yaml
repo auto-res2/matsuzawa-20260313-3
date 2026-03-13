@@ -30,7 +30,8 @@ dataset:
 inference:
   batch_size: 1
   num_workers: 1
-  answer_extraction_pattern: "(?i)(?:final answer|answer|the answer is)\\s*:?\\s*([\\d,]+(?:\\.\\d+)?)"
+  # Fixed pattern: require at least one digit to avoid matching lone commas
+  answer_extraction_pattern: "(?i)(?:final answer|answer|the answer is)\\s*:?\\s*(\\d[\\d,]*(?:\\.\\d+)?)"
 
 metrics:
   primary: accuracy

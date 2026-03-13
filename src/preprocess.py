@@ -112,6 +112,33 @@ def normalize_answer(answer: str) -> str:
         return answer
 
 
+# [VALIDATOR FIX - Attempt 1]
+# [PROBLEM]: Answer extraction is failing, returning only commas "," instead of actual numbers
+# [CAUSE]: The regex pattern [\d,]+ matches commas alone (e.g., "Therefore," → ",").
+#          Pattern 2 in fallback "therefore[,:]?\s*([\d,]+)" was matching "Therefore," and capturing only the comma.
+# [FIX]: Changed all number-matching patterns from [\d,]+ to \d[\d,]* to require at least one digit
+#
+# [OLD CODE]:
+# def extract_answer_from_response(response: str, pattern: Optional[str] = None) -> str:
+#     if pattern:
+#         match = re.search(pattern, response, re.IGNORECASE | re.MULTILINE)
+#         if match:
+#             return match.group(1).strip()
+#     patterns = [
+#         r"(?i)(?:final answer|the answer is|answer)\s*:?\s*([\d,]+(?:\.\d+)?)",
+#         r"(?i)####\s*([\d,]+(?:\.\d+)?)",
+#         r"(?i)therefore[,:]?\s*([\d,]+(?:\.\d+)?)",
+#     ]
+#     for p in patterns:
+#         match = re.search(p, response, re.IGNORECASE | re.MULTILINE)
+#         if match:
+#             return match.group(1).strip()
+#     numbers = re.findall(r"[\d,]+(?:\.\d+)?", response)
+#     if numbers:
+#         return numbers[-1].strip()
+#     return ""
+#
+# [NEW CODE]:
 def extract_answer_from_response(response: str, pattern: Optional[str] = None) -> str:
     """
     Extract final answer from model response.
@@ -129,11 +156,11 @@ def extract_answer_from_response(response: str, pattern: Optional[str] = None) -
         if match:
             return match.group(1).strip()
 
-    # Fallback patterns
+    # Fallback patterns (require at least one digit)
     patterns = [
-        r"(?i)(?:final answer|the answer is|answer)\s*:?\s*([\d,]+(?:\.\d+)?)",
-        r"(?i)####\s*([\d,]+(?:\.\d+)?)",
-        r"(?i)therefore[,:]?\s*([\d,]+(?:\.\d+)?)",
+        r"(?i)(?:final answer|the answer is|answer)\s*:?\s*(\d[\d,]*(?:\.\d+)?)",
+        r"(?i)####\s*(\d[\d,]*(?:\.\d+)?)",
+        r"(?i)therefore[,:]?\s*(\d[\d,]*(?:\.\d+)?)",
     ]
 
     for p in patterns:
@@ -141,8 +168,8 @@ def extract_answer_from_response(response: str, pattern: Optional[str] = None) -
         if match:
             return match.group(1).strip()
 
-    # Last resort: find last number in response
-    numbers = re.findall(r"[\d,]+(?:\.\d+)?", response)
+    # Last resort: find last number in response (require at least one digit)
+    numbers = re.findall(r"\d[\d,]*(?:\.\d+)?", response)
     if numbers:
         return numbers[-1].strip()
 
