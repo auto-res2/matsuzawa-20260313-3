@@ -1,0 +1,41 @@
+# Baseline method: Standard Chain-of-Thought
+# Run ID: comparative-0-gpt4o-gsm8k
+
+run_id: comparative-0-gpt4o-gsm8k
+
+method:
+  type: comparative-0
+  name: Standard-CoT
+  description: "Standard Chain-of-Thought prompting"
+  prompt_template: |
+    You are solving a math reasoning problem. Think step by step to solve it.
+    
+    Problem: {question}
+    
+    Let's solve this step by step:
+
+model:
+  name: gpt-4o
+  provider: openai
+  temperature: 0.0
+  max_tokens: 2048
+  api_key_env: OPENAI_API_KEY
+
+dataset:
+  name: gsm8k
+  split: test
+  subset_size: 200
+  seed: 42
+
+inference:
+  batch_size: 1
+  num_workers: 1
+  answer_extraction_pattern: "(?i)(?:final answer|answer|the answer is)\\s*:?\\s*([\\d,]+(?:\\.\\d+)?)"
+
+metrics:
+  primary: accuracy
+  secondary:
+    - reasoning_steps
+    - decision_count
+    - uncertain_decisions
+    - support_violations

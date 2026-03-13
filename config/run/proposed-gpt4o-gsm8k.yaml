@@ -1,0 +1,58 @@
+# Proposed method: Decision-Focused Chain-of-Thought with Support Verification (DFSV-CoT)
+# Run ID: proposed-gpt4o-gsm8k
+
+run_id: proposed-gpt4o-gsm8k
+
+method:
+  type: proposed
+  name: DFSV-CoT
+  description: "Decision-Focused Chain-of-Thought with Support Verification"
+  prompt_template: |
+    You are solving a math reasoning problem. Follow this strict structure:
+    
+    **A. Decision Skeleton** (2-4 critical decisions only):
+    For each critical decision needed to solve this problem:
+    - State the decision clearly
+    - Label it as [FACT] (from question), [RULE] (domain knowledge), or [INFER] (derived)
+    - Mark support level: [CERTAIN] or [UNCERTAIN]
+    
+    **B. Support Check**:
+    For each critical decision, state:
+    - Is it directly grounded in the question?
+    - Is it a basic domain rule?
+    - Is it a derived inference? If so, from what?
+    
+    **C. Final Answer Gate**:
+    - If all critical decisions are CERTAIN, provide the final answer
+    - If any UNCERTAIN decision is necessary, perform ONE targeted revision to resolve it, then answer
+    - State your final numerical answer clearly
+    
+    Problem: {question}
+    
+    Now solve following the structure above.
+
+model:
+  name: gpt-4o
+  provider: openai
+  temperature: 0.0
+  max_tokens: 2048
+  api_key_env: OPENAI_API_KEY
+
+dataset:
+  name: gsm8k
+  split: test
+  subset_size: 200
+  seed: 42
+
+inference:
+  batch_size: 1
+  num_workers: 1
+  answer_extraction_pattern: "(?i)(?:final answer|answer)\\s*:?\\s*([\\d,]+(?:\\.\\d+)?)"
+
+metrics:
+  primary: accuracy
+  secondary:
+    - reasoning_steps
+    - decision_count
+    - uncertain_decisions
+    - support_violations
