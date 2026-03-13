@@ -243,21 +243,63 @@ def compute_aggregated_metrics(all_run_data: List[Dict]) -> Dict:
     return aggregated
 
 
+# [VALIDATOR FIX - Attempt 1]
+# [PROBLEM]: evaluate.py was being called from GitHub Actions workflow with positional arguments
+#            but expected --results_dir and --run_ids flags
+# [CAUSE]: Workflow passes "results_dir=VALUE run_ids=VALUE" format instead of "--results_dir VALUE --run_ids VALUE"
+# [FIX]: Modified argparse to accept both formats: either as flags (--results_dir, --run_ids) or
+#        as positional KEY=VALUE pairs that we parse manually
+#
+# [OLD CODE]:
+# def main():
+#     """Main evaluation function."""
+#     parser = argparse.ArgumentParser(
+#         description="Evaluate and compare experimental runs"
+#     )
+#     parser.add_argument(
+#         "--results_dir", type=str, required=True, help="Results directory"
+#     )
+#     parser.add_argument(
+#         "--run_ids", type=str, required=True, help="JSON list of run IDs"
+#     )
+#     args = parser.parse_args()
+#
+# [NEW CODE]:
 def main():
     """Main evaluation function."""
     parser = argparse.ArgumentParser(
         description="Evaluate and compare experimental runs"
     )
     parser.add_argument(
-        "--results_dir", type=str, required=True, help="Results directory"
+        "--results_dir", type=str, required=False, help="Results directory"
     )
     parser.add_argument(
-        "--run_ids", type=str, required=True, help="JSON list of run IDs"
+        "--run_ids", type=str, required=False, help="JSON list of run IDs"
     )
+    # Accept positional KEY=VALUE arguments
+    parser.add_argument("extra_args", nargs="*", help="KEY=VALUE arguments")
     args = parser.parse_args()
 
+    # Parse KEY=VALUE arguments if present
+    results_dir = args.results_dir
+    run_ids_str = args.run_ids
+
+    for arg in args.extra_args:
+        if "=" in arg:
+            key, value = arg.split("=", 1)
+            if key == "results_dir":
+                results_dir = value
+            elif key == "run_ids":
+                run_ids_str = value
+
+    # Validate required arguments
+    if not results_dir:
+        parser.error("--results_dir or results_dir=VALUE is required")
+    if not run_ids_str:
+        parser.error("--run_ids or run_ids=VALUE is required")
+
     # Parse run IDs
-    run_ids = json.loads(args.run_ids)
+    run_ids = json.loads(run_ids_str)
     print(f"Evaluating runs: {run_ids}")
 
     # Get WandB credentials from environment
@@ -273,7 +315,7 @@ def main():
             all_run_data.append(run_data)
 
             # Export per-run metrics
-            run_dir = Path(args.results_dir) / run_id
+            run_dir = Path(results_dir) / run_id
             export_run_metrics(run_data, run_dir)
 
     if not all_run_data:
@@ -281,7 +323,7 @@ def main():
         return
 
     # Create comparison directory
-    comparison_dir = Path(args.results_dir) / "comparison"
+    comparison_dir = Path(results_dir) / "comparison"
     comparison_dir.mkdir(parents=True, exist_ok=True)
 
     # Compute aggregated metrics
@@ -300,7 +342,7 @@ def main():
 
     print("\n" + "=" * 80)
     print("Evaluation complete!")
-    print(f"Results saved to: {args.results_dir}")
+    print(f"Results saved to: {results_dir}")
     print("=" * 80)
 
 
