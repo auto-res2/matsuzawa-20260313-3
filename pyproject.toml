@@ -36,5 +36,17 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# [VALIDATOR FIX - Attempt 1]
+# [PROBLEM]: uv failed to build the package with error "Unable to determine which files to ship inside the wheel"
+# [CAUSE]: Hatchling could not find a directory matching the normalized package name (airas_prompt_tuning), and no explicit file selection was configured
+# [FIX]: Added [tool.hatch.build.targets.wheel] configuration to explicitly tell Hatchling to package the src/ directory
+#
+# [OLD CODE]:
+# (missing configuration - no [tool.hatch.build.targets.wheel] section)
+#
+# [NEW CODE]:
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [tool.uv]
 dev-dependencies = []
